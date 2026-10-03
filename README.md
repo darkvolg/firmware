@@ -1,3 +1,5 @@
+> **This is the `pet` branch of a fork** of [kaiaai/firmware](https://github.com/kaiaai/firmware), made for a home pet robot. It adds a safety layer (command timeout, stall stop, battery cutoff) and a config for ESP32 DevKit + L298N + LD19. What changed and how to build: **[PET.md](PET.md)** · **[по-русски](PET.ru.md)**. Everything below is the original README.
+
 # Kaia.ai platform robot firmware
 
 Use this open-source firmware to easily make (relatively advanced) self-driving Arduino/ROS2 robots equipped with a spinning Lidar distance sensor. Currently, I support out-of-the-box the differential (2-wheel) round base with a rear caster.

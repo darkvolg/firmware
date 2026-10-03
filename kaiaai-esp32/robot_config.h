@@ -17,7 +17,7 @@
 
 class CONFIG {
 public:
-  static constexpr char* FW_VERSION = (char*)"0.8.6-iron";
+  static constexpr char* FW_VERSION = (char*)"0.8.6-iron-pet.1";
   static constexpr char* CONFIG_YAML_PATH = (char *)"/config.yaml";
   static constexpr char* NETWORK_YAML_PATH = (char *)"/network.yaml";
   static constexpr char* INDEX_HTML_PATH = (char *)"/index.html";
@@ -156,6 +156,19 @@ public:
   uint8_t mot_right_drv_gpio_in1_pwm = 255;
   uint8_t mot_right_drv_gpio_in2_cw = 255;
   uint32_t monitor_baud = 115200;
+
+  // Safety, see safety.h; seconds, RPM, PWM 0..1, volts. 0 disables a check
+  float safety_cmd_vel_timeout = 0.5f;
+  float safety_stall_timeout = 1.0f;
+  float safety_stall_rpm_min = 3.0f;
+  float safety_stall_pwm_min = 0.15f;
+  float safety_stall_hold = 2.0f;
+  float safety_bat_low = 0;
+  float safety_bat_stop = 0;
+  float safety_bat_sleep = 0;
+  float safety_bat_hysteresis = 0.5f;
+  float safety_bat_delay = 3.0f;
+  float safety_bat_wake = 60.0f;
 
   // Cache divisions
   float speed_diff_to_us;
@@ -454,6 +467,37 @@ public:
           adc_bat_voltage_full = pvalue.toFloat();
         if (lname[3] == "empty")
           adc_bat_voltage_empty = pvalue.toFloat();
+      }
+      return;
+    }
+
+    if (nlevels == 3 && lname[0] == "safety") {
+      float val = pvalue.toFloat();
+      if (lname[1] == "cmd_vel") {
+        if (lname[2] == "timeout")
+          safety_cmd_vel_timeout = val;
+      } else if (lname[1] == "stall") {
+        if (lname[2] == "timeout")
+          safety_stall_timeout = val;
+        else if (lname[2] == "rpm_min")
+          safety_stall_rpm_min = val;
+        else if (lname[2] == "pwm_min")
+          safety_stall_pwm_min = val;
+        else if (lname[2] == "hold")
+          safety_stall_hold = val;
+      } else if (lname[1] == "battery") {
+        if (lname[2] == "low")
+          safety_bat_low = val;
+        else if (lname[2] == "stop")
+          safety_bat_stop = val;
+        else if (lname[2] == "sleep")
+          safety_bat_sleep = val;
+        else if (lname[2] == "hysteresis")
+          safety_bat_hysteresis = val;
+        else if (lname[2] == "delay")
+          safety_bat_delay = val;
+        else if (lname[2] == "wake")
+          safety_bat_wake = val;
       }
       return;
     }

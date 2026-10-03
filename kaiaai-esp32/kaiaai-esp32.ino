@@ -25,6 +25,7 @@
 #include "lidar.h"
 #include "ros.h"
 #include "adc.h"
+#include "safety.h"
 #include <SPIFFS.h>
 
 CONFIG cfg;
@@ -66,6 +67,10 @@ inline void setOdomTarget(float d_dist, float d_yaw) {
 
 void twist_sub_callback(const void *msgin) {
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
+
+  safetyOnCmdVel();
+  if (safetyMotionBlocked())
+    return;
 
   float target_speed_lin_x = msg->linear.x;
   float target_speed_ang_z = msg->angular.z;
@@ -457,7 +462,8 @@ void loop() {
 
   bool wifi_ok = WiFi.status() == WL_CONNECTED;
   if (wifi_ok && !wifi_ok_prev) {
-    lidar->start();
+    if (!safetyLidarBlocked())
+      lidar->start();
     Serial.println("WiFi connection restored");
   } else if (!wifi_ok && wifi_ok_prev) {
     lidar->stop();
@@ -478,8 +484,9 @@ void loop() {
 
   spinTelem(false);
   spinPing();
+  safetyLoop();
 
-  if (wifi_ok)
+  if (wifi_ok && !safetyMotionBlocked())
     updateSpeedRamp();
   else
     setMotorSpeeds(0, 0);
@@ -668,6 +675,7 @@ void setup() {
 
   setupLIDAR();
   setupADC();
+  safetySetup();
   setupMotors();
 
   while(!initWiFi(cfg.ssid, cfg.pass));
@@ -697,7 +705,8 @@ void setup() {
   resetTelemMsg();
   clearOdomTarget();
 
-  startLIDAR();
+  if (!safetyLidarBlocked())
+    startLIDAR();
     //blink_error_code(cfg.ERR_LIDAR_START);
     //error_loop(cfg.ERR_LIDAR_START);
 }

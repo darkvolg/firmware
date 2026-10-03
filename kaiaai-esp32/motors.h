@@ -65,6 +65,37 @@ void IRAM_ATTR quadEncoderBRightISR() {
   motorRight.tickSignedEncoder(enc_a == enc_b);
 }
 
+// Stop the motor right now, bypassing the PID.
+// IN1_IN2: both driver inputs HIGH (brake). The pins are released from LEDC
+// first - digitalWrite() has no effect on a pin still attached to a PWM
+// channel, the motor would keep running at the last duty cycle.
+void brakeMotor(bool is_right) {
+  uint8_t pwm_channel = is_right ? cfg.MOT_PWM_RIGHT_CHANNEL : cfg.MOT_PWM_LEFT_CHANNEL;
+  int max_pwm = (1<<cfg.MOT_PWM_BITS) - 1;
+  uint8_t in1_pin = is_right ? cfg.mot_right_drv_gpio_in1_pwm : cfg.mot_left_drv_gpio_in1_pwm;
+  uint8_t in2_pin = is_right ? cfg.mot_right_drv_gpio_in2_cw : cfg.mot_left_drv_gpio_in2_cw;
+
+  if (motorDriverType == MOT_DRIVER_PWM_CW) {
+    ledcWrite(pwm_channel, max_pwm); // same as setMotorPWM(0)
+    return;
+  }
+
+  if (in1_pin == cfg.UNDEFINED_GPIO || in2_pin == cfg.UNDEFINED_GPIO)
+    return;
+
+  #if ESP_IDF_VERSION_MAJOR >= 5
+  ledcDetach(in1_pin);
+  ledcDetach(in2_pin);
+  #else
+  ledcDetachPin(in1_pin);
+  ledcDetachPin(in2_pin);
+  #endif
+  setPinMode(in1_pin, OUTPUT);
+  setPinMode(in2_pin, OUTPUT);
+  digitalWrite(in1_pin, HIGH);
+  digitalWrite(in2_pin, HIGH);
+}
+
 void setMotorPWM(MotorController *motor_controller, float pwm) {
   bool is_right = motor_controller == &motorRight;
 
@@ -91,8 +122,7 @@ void setMotorPWM(MotorController *motor_controller, float pwm) {
     default:
       if (pwm == 0) {
         // Hard brake
-        digitalWrite(in1_pin, HIGH);
-        digitalWrite(in2_pin, HIGH);
+        brakeMotor(is_right);
         //Serial.println("hard brake");
         return;
       } else if (pwm < -1) {

@@ -1,2 +1,4 @@
 kaiaai-esp32/data/network.yaml
 kaiaai-esp32/bin/
+.pio/
+test_host/build/
